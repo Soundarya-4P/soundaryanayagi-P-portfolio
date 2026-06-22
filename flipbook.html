@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PDF Flipbook</title>
+
+<!-- ✅ Correct CDN for PageFlip -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/css/page-flip.min.css">
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+
+<!-- ✅ PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+<style>
+  body {
+    margin: 0;
+    background-color: #f7f7f7;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  #flipbook {
+    width: 85vw;
+    height: 90vh;
+    background: #fff;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    position: relative;
+  }
+
+  .page {
+    background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  canvas {
+    width: 100%;
+    height: auto;
+  }
+
+  .back-btn {
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    padding: 8px 12px;
+    background: #007bff;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    z-index: 1000;
+  }
+
+  .loading {
+    color: #444;
+    font-size: 18px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<a href="project_gallery.html" class="back-btn">← Back</a>
+<div id="flipbook" class="loading">Loading PDF...</div>
+
+<script>
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const pdfPath = params.get("file") || "assets/docs/project1.pdf";
+  console.log("📘 Loading PDF:", pdfPath);
+
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+  const container = document.getElementById('flipbook');
+
+  try {
+    const pdf = await pdfjsLib.getDocument(pdfPath).promise;
+    console.log("Total pages:", pdf.numPages);
+
+    const pages = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: context, viewport }).promise;
+
+      const div = document.createElement("div");
+      div.className = "page";
+      div.appendChild(canvas);
+      pages.push(div);
+    }
+
+    container.innerHTML = "";
+
+    // ✅ Use the correct constructor name for PageFlip
+    const flipbook = new St.PageFlip(container, {
+      width: 700,
+      height: 900,
+      size: "stretch",
+      maxShadowOpacity: 0.5,
+      showCover: true,
+      mobileScrollSupport: true,
+      useMouseEvents: true,
+      autoSize: true
+    });
+
+    flipbook.loadFromHTML(pages);
+    console.log("✅ Flipbook loaded successfully!");
+  } catch (err) {
+    console.error("❌ Error loading PDF:", err);
+    container.innerHTML = `<p style='color:red;'>Error: ${err.message}</p>`;
+  }
+})();
+</script>
+
+</body>
+</html>
